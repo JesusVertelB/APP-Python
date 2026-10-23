@@ -282,9 +282,9 @@ TRM vigente desde {desde}: ${trm:,.2f} COP
 {cambio_texto}
 
 TAREAS
-{tareas_texto if tareas_texto else 'Sin tareas registradas.\n'}
+{tareas_texto if tareas_texto else 'Sin tareas registradas.'}
 NOTICIAS DE TECNOLOGÍA
-{noticias_texto if noticias_texto else 'No se pudieron cargar las noticias.\n'}
+{noticias_texto if noticias_texto else 'No se pudieron cargar las noticias.'}
 FRASE DEL DÍA
 {frase}
 """
