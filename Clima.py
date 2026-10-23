@@ -8,6 +8,7 @@ import traceback
 from email.message import EmailMessage
 
 import requests
+import feedparser
 
 
 # --- Aviso por correo si el script falla ---
@@ -38,6 +39,7 @@ sys.excepthook = avisar_error
 DESTINATARIOS = [
     "vertelbravojesus@gmail.com",
     "hurtadomariana180@gmail.com",
+    
 ]
 
 # Para correos donde el nombre no se pueda deducir o lleva tilde.
@@ -127,9 +129,9 @@ tramos_html = ""
 for nombre_tramo, inicio, fin, emoji in tramos:
     temp_media, lluvia_max = resumen_tramo(inicio, fin)
     tramos_texto += f"{emoji} {nombre_tramo}: {temp_media} °C, lluvia {lluvia_max}%\n"
-    tramos_html += f"""<td width="33%" style="text-align:center; padding:12px 4px; background-color:#f7f8fa; border-radius:8px;">
-      <div style="font-size:12px; color:#7b8794;">{emoji} {nombre_tramo}</div>
-      <div style="font-size:18px; font-weight:600; color:#1b2a41;">{temp_media}°C</div>
+    tramos_html += f"""<td width="33%" align="center" style="padding:12px 0; background-color:#f7f8fa; border-radius:8px;">
+      <div style="font-size:11px; color:#7b8794; text-transform:uppercase; font-weight:600; letter-spacing:1px;">{emoji} {nombre_tramo}</div>
+      <div style="font-size:17px; font-weight:600; color:#1b2a41; margin:6px 0;">{temp_media}°C</div>
       <div style="font-size:12px; color:#7b8794;">💧 {lluvia_max}%</div>
     </td>"""
 
@@ -178,16 +180,77 @@ else:
     flecha, color_cambio = "=", "#7b8794"   # igual: gris
 cambio_texto = f"{flecha} ${abs(cambio):,.2f} frente al valor anterior"
 
-# --- Frase del día ---
-frases = [
-    "Un pequeño avance cada día suma más que un gran esfuerzo de vez en cuando.",
-    "No tienes que ser perfecto para empezar, solo tienes que empezar.",
-    "Los errores son la prueba de que estás intentando.",
-    "Aprender a programar es resolver un problema a la vez.",
-    "Lo que hoy cuesta trabajo, mañana será un hábito.",
-    "La constancia le gana al talento cuando el talento no es constante.",
-]
-frase = random.choice(frases)
+# --- Frase del día (.txt) ---
+archivo_frases = "frases.txt"
+frase = "Aprender a programar es resolver un problema a la vez." # Frase de respaldo
+
+if os.path.exists(archivo_frases):
+    with open(archivo_frases, "r", encoding="utf-8") as f:
+        lista_frases = [linea.strip() for linea in f if linea.strip()]
+    
+    if lista_frases:
+        frase = random.choice(lista_frases)
+
+
+# --- Noticias de Tecnología (RSS) ---
+url_rss = "https://feeds.weblogssl.com/xataka2" # URL oficial y funcional
+feed = feedparser.parse(url_rss)
+
+noticias_texto = ""
+bloque_noticias_html = ""
+
+if feed.entries:
+    noticias_html_items = ""
+    for entrada in feed.entries[:3]:
+        titulo = entrada.title
+        link = entrada.link
+        noticias_texto += f"- {titulo}\n  {link}\n\n"
+        noticias_html_items += f"""
+        <div style="margin-bottom:16px;">
+          <a href="{link}" target="_blank" style="color:#1b2a41; font-size:15px; font-weight:600; text-decoration:none; display:block; line-height:1.4;">{titulo}</a>
+          <a href="{link}" target="_blank" style="color:#c9a45c; font-size:12px; text-decoration:none; margin-top:4px; display:inline-block; font-weight:600;">Leer artículo →</a>
+        </div>"""
+
+    bloque_noticias_html = f"""
+        <!-- Noticias de Tecnología -->
+        <tr><td style="padding:24px 36px 8px 36px;">
+          <div style="color:#c9a45c; font-size:12px; letter-spacing:2px; text-transform:uppercase; font-weight:600;">Tecnología · Última hora</div>
+          <div style="margin-top:16px;">
+            {noticias_html_items}
+          </div>
+        </td></tr>
+        <tr><td style="padding:24px 36px 0 36px;"><div style="border-top:1px solid #e4e7ec;"></div></td></tr>
+    """
+
+# --- Lista de Tareas (.txt) ---
+archivo_tareas = "tareas.txt"
+tareas_texto = ""
+bloque_tareas_html = ""
+
+if os.path.exists(archivo_tareas):
+    with open(archivo_tareas, "r", encoding="utf-8") as f:
+        lineas = [linea.strip() for linea in f if linea.strip()]
+    
+    if lineas:
+        tareas_html_items = ""
+        for tarea in lineas:
+            tareas_texto += f"☐ {tarea}\n"
+            tareas_html_items += f"""
+            <div style="margin-bottom:10px;">
+              <span style="color:#c9a45c; margin-right:6px; font-size:16px;">☐</span>
+              <span style="color:#1b2a41; font-size:15px; line-height:1.4;">{tarea}</span>
+            </div>"""
+        
+        bloque_tareas_html = f"""
+        <!-- Tareas -->
+        <tr><td style="padding:24px 36px 8px 36px;">
+          <div style="color:#c9a45c; font-size:12px; letter-spacing:2px; text-transform:uppercase; font-weight:600;">Tus tareas de hoy</div>
+          <div style="margin-top:16px;">
+            {tareas_html_items}
+          </div>
+        </td></tr>
+        <tr><td style="padding:24px 36px 0 36px;"><div style="border-top:1px solid #e4e7ec;"></div></td></tr>
+        """
 
 # --- Fecha en español ---
 dias = ["lunes", "martes", "miércoles", "jueves", "viernes", "sábado", "domingo"]
@@ -218,6 +281,10 @@ DÓLAR
 TRM vigente desde {desde}: ${trm:,.2f} COP
 {cambio_texto}
 
+TAREAS
+{tareas_texto if tareas_texto else 'Sin tareas registradas.\n'}
+NOTICIAS DE TECNOLOGÍA
+{noticias_texto if noticias_texto else 'No se pudieron cargar las noticias.\n'}
 FRASE DEL DÍA
 {frase}
 """
@@ -272,8 +339,11 @@ html = f"""\
           <div style="color:#1b2a41; font-size:32px; font-weight:300; margin:10px 0 4px 0;">${trm:,.2f} <span style="font-size:14px; color:#7b8794;">COP</span></div>
           <div style="color:{color_cambio}; font-size:14px; font-weight:600; margin-top:6px;">{cambio_texto}</div>
         </td></tr>
-
+  
         <tr><td style="padding:24px 36px 0 36px;"><div style="border-top:1px solid #e4e7ec;"></div></td></tr>
+
+        {bloque_tareas_html}
+        {bloque_noticias_html}
 
         <!-- Frase -->
         <tr><td style="padding:24px 36px 36px 36px;">
