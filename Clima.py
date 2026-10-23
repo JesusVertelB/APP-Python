@@ -10,6 +10,13 @@ from email.message import EmailMessage
 import requests
 import feedparser
 
+import google.generativeai as genai
+
+# Configurar Gemini si la clave existe
+clave_gemini = os.environ.get("GEMINI_API_KEY")
+if clave_gemini:
+    genai.configure(api_key=clave_gemini)
+
 
 # --- Aviso por correo si el script falla ---
 def avisar_error(tipo, valor, tb):
@@ -193,7 +200,7 @@ if os.path.exists(archivo_frases):
 
 
 # --- Noticias de Tecnología (RSS) ---
-url_rss = "https://feeds.weblogssl.com/xataka2" # URL oficial y funcional
+url_rss = "https://feeds.weblogssl.com/xataka2"
 feed = feedparser.parse(url_rss)
 
 noticias_texto = ""
@@ -201,9 +208,13 @@ bloque_noticias_html = ""
 
 if feed.entries:
     noticias_html_items = ""
+    titulares = []
+    
     for entrada in feed.entries[:3]:
         titulo = entrada.title
         link = entrada.link
+        titulares.append(titulo)
+        
         noticias_texto += f"- {titulo}\n  {link}\n\n"
         noticias_html_items += f"""
         <div style="margin-bottom:16px;">
@@ -211,11 +222,31 @@ if feed.entries:
           <a href="{link}" target="_blank" style="color:#c9a45c; font-size:12px; text-decoration:none; margin-top:4px; display:inline-block; font-weight:600;">Leer artículo →</a>
         </div>"""
 
+    # --- Integración con Gemini IA ---
+    resumen_ia_html = ""
+    if clave_gemini and titulares:
+        try:
+            modelo = genai.GenerativeModel('gemini-1.5-flash')
+            prompt = f"Actúa como un asistente tecnológico amigable. Escribe un resumen de máximo 3 líneas unificando estos titulares de noticias de hoy: {', '.join(titulares)}."
+            respuesta = modelo.generate_content(prompt)
+            
+            resumen_ia_html = f"""
+            <div style="background-color:#fdf6e7; border-left:4px solid #c9a45c; border-radius:4px; padding:12px 16px; margin-bottom:20px;">
+              <div style="color:#1b2a41; font-size:14px; line-height:1.6;">
+                <strong>✨ Resumen IA:</strong> {respuesta.text.strip()}
+              </div>
+            </div>
+            """
+        except Exception as e:
+            print(f"Error al generar resumen IA: {e}")
+
+    # Construir el bloque final de noticias
     bloque_noticias_html = f"""
         <!-- Noticias de Tecnología -->
         <tr><td style="padding:24px 36px 8px 36px;">
-          <div style="color:#c9a45c; font-size:12px; letter-spacing:2px; text-transform:uppercase; font-weight:600;">Tecnología · Última hora</div>
-          <div style="margin-top:16px;">
+          <div style="color:#c9a45c; font-size:12px; letter-spacing:2px; text-transform:uppercase; font-weight:600; margin-bottom:16px;">Tecnología · Última hora</div>
+          {resumen_ia_html}
+          <div>
             {noticias_html_items}
           </div>
         </td></tr>
