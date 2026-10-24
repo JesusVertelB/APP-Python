@@ -7,6 +7,7 @@ import sys
 import traceback
 from email.message import EmailMessage
 from html import escape
+from zoneinfo import ZoneInfo
 
 import requests
 import feedparser
@@ -26,12 +27,13 @@ def avisar_error(tipo, valor, tb):
     try:
         correo = os.environ["GMAIL_USER"]
         clave = os.environ["GMAIL_APP_PASSWORD"]
+        ahora = datetime.now(ZoneInfo("America/Bogota"))
         aviso = EmailMessage()
         aviso["Subject"] = "⚠️ Falló tu resumen diario"
         aviso["From"] = correo
         aviso["To"] = correo
         aviso.set_content(
-            f"El script Clima.py falló el {datetime.now():%d/%m/%Y a las %H:%M}.\n\n{detalle}"
+            f"El script Clima.py falló el {ahora:%d/%m/%Y a las %H:%M}.\n\n{detalle}"
         )
         with smtplib.SMTP_SSL("smtp.gmail.com", 465) as servidor:
             servidor.login(correo, clave)
@@ -46,6 +48,7 @@ sys.excepthook = avisar_error
 # --- Destinatarios ---
 DESTINATARIOS = [
     "vertelbravojesus@gmail.com",
+    "hurtadomariana180@gmail.com",
 ]
 
 # Para correos donde el nombre no se pueda deducir o lleva tilde.
@@ -188,12 +191,12 @@ cambio_texto = f"{flecha} ${abs(cambio):,.2f} frente al valor anterior"
 
 # --- Frase del día (.txt) ---
 archivo_frases = "frases.txt"
-frase = "Aprender a programar es resolver un problema a la vez." # Frase de respaldo
+frase = "Aprender a programar es resolver un problema a la vez."  # Frase de respaldo
 
 if os.path.exists(archivo_frases):
     with open(archivo_frases, "r", encoding="utf-8") as f:
         lista_frases = [linea.strip() for linea in f if linea.strip()]
-    
+
     if lista_frases:
         frase = random.choice(lista_frases)
 
@@ -208,20 +211,20 @@ bloque_noticias_html = ""
 if feed.entries:
     noticias_html_items = ""
     titulares = []
-    
+
     for entrada in feed.entries[:3]:
         titulo = entrada.title
         link = entrada.link
         titulares.append(titulo)
-        
+
         noticias_texto += f"- {titulo}\n  {link}\n\n"
         noticias_html_items += f"""
         <div style="margin-bottom:16px;">
-          <a href="{link}" target="_blank" style="color:#1b2a41; font-size:15px; font-weight:600; text-decoration:none; display:block; line-height:1.4;">{titulo}</a>
-          <a href="{link}" target="_blank" style="color:#c9a45c; font-size:12px; text-decoration:none; margin-top:4px; display:inline-block; font-weight:600;">Leer artículo →</a>
+          <a href="{escape(link)}" target="_blank" style="color:#1b2a41; font-size:15px; font-weight:600; text-decoration:none; display:block; line-height:1.4;">{escape(titulo)}</a>
+          <a href="{escape(link)}" target="_blank" style="color:#c9a45c; font-size:12px; text-decoration:none; margin-top:4px; display:inline-block; font-weight:600;">Leer artículo →</a>
         </div>"""
 
-        # --- Integración con Gemini IA ---
+    # --- Integración con Gemini IA ---
     resumen_ia_html = ""
     aviso_ia = ""
     if not clave_gemini:
@@ -271,7 +274,6 @@ if feed.entries:
 dias = ["lunes", "martes", "miércoles", "jueves", "viernes", "sábado", "domingo"]
 meses = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio",
          "agosto", "septiembre", "octubre", "noviembre", "diciembre"]
-from zoneinfo import ZoneInfo
 hoy = datetime.now(ZoneInfo("America/Bogota"))
 fecha_texto = f"{dias[hoy.weekday()].capitalize()}, {hoy.day} de {meses[hoy.month - 1]} de {hoy.year}"
 
@@ -296,6 +298,11 @@ Probabilidad de lluvia: {lluvia}%
 DÓLAR
 TRM vigente desde {desde}: ${trm:,.2f} COP
 {cambio_texto}
+
+NOTICIAS DE TECNOLOGÍA
+{noticias_texto if noticias_texto else 'No se pudieron cargar las noticias.'}
+FRASE DEL DÍA
+{frase}
 """
 
 # --- Versión HTML elegante ---
@@ -348,7 +355,7 @@ html = f"""\
           <div style="color:#1b2a41; font-size:32px; font-weight:300; margin:10px 0 4px 0;">${trm:,.2f} <span style="font-size:14px; color:#7b8794;">COP</span></div>
           <div style="color:{color_cambio}; font-size:14px; font-weight:600; margin-top:6px;">{cambio_texto}</div>
         </td></tr>
-  
+
         <tr><td style="padding:24px 36px 0 36px;"><div style="border-top:1px solid #e4e7ec;"></div></td></tr>
 
         {bloque_noticias_html}
@@ -371,6 +378,36 @@ html = f"""\
 </body>
 </html>
 """
+
+# --- Tema del correo ---
+TEMA = "oscuro"   # cambia a "claro" para volver al diseño anterior
+
+if TEMA == "oscuro":
+    CAMBIOS = [
+        # Primero los fondos (el orden importa)
+        ("background-color:#1b2a41", "background-color:#0b1320"),  # encabezado
+        ("background-color:#ffffff", "background-color:#17212f"),  # tarjeta
+        ("background-color:#f1f3f6", "background-color:#0f1722"),  # fondo y pie
+        ("background-color:#f7f8fa", "background-color:#1f2b3d"),  # mañana/tarde/noche
+        ("background-color:#fdf6e7", "background-color:#2b2619"),  # consejos y resumen IA
+        ("background-color:#f7f4ed", "background-color:#1f2a3a"),  # frase
+        # Después los textos y las líneas
+        ("color:#1b2a41", "color:#e8edf4"),
+        ("color:#7b8794", "color:#9aa7b8"),
+        ("color:#98a2b3", "color:#6f7d90"),
+        ("color:#2e8b57", "color:#4cc38a"),  # TRM baja
+        ("color:#c0392b", "color:#ff7b6e"),  # TRM sube
+        ("#e4e7ec", "#2a3748"),              # líneas divisorias
+    ]
+    for claro, oscuro in CAMBIOS:
+        html = html.replace(claro, oscuro)
+
+    # Le dice al programa de correo que el diseño ya es oscuro
+    html = html.replace(
+        "<html>",
+        '<html><head><meta name="color-scheme" content="dark">'
+        '<meta name="supported-color-schemes" content="dark"></head>',
+    )
 
 # --- Armar y enviar un correo por persona ---
 with smtplib.SMTP_SSL("smtp.gmail.com", 465) as servidor:
