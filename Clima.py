@@ -222,7 +222,8 @@ if feed.entries:
 
     # --- Integración con Gemini IA ---
     resumen_ia_html = ""
-    if clave_gemini and titulares:
+    if not clave_gemini:
+        print("⚠️ GEMINI_API_KEY no está configurada. No se generará resumen IA.")
         try:
             prompt = f"Actúa como un asistente tecnológico amigable. Escribe un resumen de máximo 3 líneas unificando estos titulares de noticias de hoy: {', '.join(titulares)}."
             respuesta = cliente_ia.models.generate_content(
