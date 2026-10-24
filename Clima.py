@@ -234,7 +234,7 @@ if feed.entries:
                 "en texto plano, sin markdown ni asteriscos: " + ", ".join(titulares)
             )
             respuesta = cliente_ia.models.generate_content(
-                model='gemini-2.5-flash',
+                model='gemini-3.8-flash',
                 contents=prompt
             )
             resumen_ia_html = f"""
