@@ -253,41 +253,12 @@ if feed.entries:
         <tr><td style="padding:24px 36px 0 36px;"><div style="border-top:1px solid #e4e7ec;"></div></td></tr>
     """
 
-# --- Lista de Tareas (.txt) ---
-archivo_tareas = "tareas.txt"
-tareas_texto = ""
-bloque_tareas_html = ""
-
-if os.path.exists(archivo_tareas):
-    with open(archivo_tareas, "r", encoding="utf-8") as f:
-        lineas = [linea.strip() for linea in f if linea.strip()]
-    
-    if lineas:
-        tareas_html_items = ""
-        for tarea in lineas:
-            tareas_texto += f"☐ {tarea}\n"
-            tareas_html_items += f"""
-            <div style="margin-bottom:10px;">
-              <span style="color:#c9a45c; margin-right:6px; font-size:16px;">☐</span>
-              <span style="color:#1b2a41; font-size:15px; line-height:1.4;">{tarea}</span>
-            </div>"""
-        
-        bloque_tareas_html = f"""
-        <!-- Tareas -->
-        <tr><td style="padding:24px 36px 8px 36px;">
-          <div style="color:#c9a45c; font-size:12px; letter-spacing:2px; text-transform:uppercase; font-weight:600;">Tus tareas de hoy</div>
-          <div style="margin-top:16px;">
-            {tareas_html_items}
-          </div>
-        </td></tr>
-        <tr><td style="padding:24px 36px 0 36px;"><div style="border-top:1px solid #e4e7ec;"></div></td></tr>
-        """
-
 # --- Fecha en español ---
 dias = ["lunes", "martes", "miércoles", "jueves", "viernes", "sábado", "domingo"]
 meses = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio",
          "agosto", "septiembre", "octubre", "noviembre", "diciembre"]
-hoy = datetime.now()
+from zoneinfo import ZoneInfo
+hoy = datetime.now(ZoneInfo("America/Bogota"))
 fecha_texto = f"{dias[hoy.weekday()].capitalize()}, {hoy.day} de {meses[hoy.month - 1]} de {hoy.year}"
 
 # --- Saludo según la hora ---
