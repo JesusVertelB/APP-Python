@@ -6,6 +6,7 @@ import smtplib
 import sys
 import traceback
 from email.message import EmailMessage
+from html import escape
 
 import requests
 import feedparser
@@ -220,26 +221,38 @@ if feed.entries:
           <a href="{link}" target="_blank" style="color:#c9a45c; font-size:12px; text-decoration:none; margin-top:4px; display:inline-block; font-weight:600;">Leer artículo →</a>
         </div>"""
 
-    # --- Integración con Gemini IA ---
+        # --- Integración con Gemini IA ---
     resumen_ia_html = ""
+    aviso_ia = ""
     if not clave_gemini:
-        print("⚠️ GEMINI_API_KEY no está configurada. No se generará resumen IA.")
+        aviso_ia = "GEMINI_API_KEY no está configurada"
+    elif titulares:
         try:
-            prompt = f"Actúa como un asistente tecnológico amigable. Escribe un resumen de máximo 3 líneas unificando estos titulares de noticias de hoy: {', '.join(titulares)}."
+            prompt = (
+                "Actúa como un asistente tecnológico amigable. Escribe un resumen de "
+                "máximo 3 líneas unificando estos titulares de noticias de hoy, en español, "
+                "en texto plano, sin markdown ni asteriscos: " + ", ".join(titulares)
+            )
             respuesta = cliente_ia.models.generate_content(
                 model='gemini-2.5-flash',
                 contents=prompt
             )
-            
             resumen_ia_html = f"""
             <div style="background-color:#fdf6e7; border-left:4px solid #c9a45c; border-radius:4px; padding:12px 16px; margin-bottom:20px;">
               <div style="color:#1b2a41; font-size:14px; line-height:1.6;">
-                <strong>✨ Resumen IA:</strong> {respuesta.text.strip()}
+                <strong>✨ Resumen IA:</strong> {escape(respuesta.text.strip())}
               </div>
             </div>
             """
         except Exception as e:
+            aviso_ia = f"{type(e).__name__}: {str(e)[:200]}"
             print(f"Error al generar resumen IA: {e}")
+
+    if aviso_ia:
+        resumen_ia_html = (
+            '<div style="color:#98a2b3; font-size:11px; margin-bottom:12px;">'
+            f'IA no disponible → {escape(aviso_ia)}</div>'
+        )
 
     # Construir el bloque final de noticias
     bloque_noticias_html = f"""
