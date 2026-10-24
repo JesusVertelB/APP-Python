@@ -10,12 +10,12 @@ from email.message import EmailMessage
 import requests
 import feedparser
 
-import google.generativeai as genai
+from google import genai
 
-# Configurar Gemini si la clave existe
+# Configurar cliente de Gemini (si la clave existe)
 clave_gemini = os.environ.get("GEMINI_API_KEY")
 if clave_gemini:
-    genai.configure(api_key=clave_gemini)
+    cliente_ia = genai.Client(api_key=clave_gemini)
 
 
 # --- Aviso por correo si el script falla ---
@@ -226,9 +226,11 @@ if feed.entries:
     resumen_ia_html = ""
     if clave_gemini and titulares:
         try:
-            modelo = genai.GenerativeModel('gemini-1.5-flash')
             prompt = f"Actúa como un asistente tecnológico amigable. Escribe un resumen de máximo 3 líneas unificando estos titulares de noticias de hoy: {', '.join(titulares)}."
-            respuesta = modelo.generate_content(prompt)
+            respuesta = cliente_ia.models.generate_content(
+                model='gemini-2.5-flash',
+                contents=prompt
+            )
             
             resumen_ia_html = f"""
             <div style="background-color:#fdf6e7; border-left:4px solid #c9a45c; border-radius:4px; padding:12px 16px; margin-bottom:20px;">
