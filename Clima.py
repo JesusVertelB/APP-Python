@@ -283,13 +283,6 @@ Probabilidad de lluvia: {lluvia}%
 DÓLAR
 TRM vigente desde {desde}: ${trm:,.2f} COP
 {cambio_texto}
-
-TAREAS
-{tareas_texto if tareas_texto else 'Sin tareas registradas.'}
-NOTICIAS DE TECNOLOGÍA
-{noticias_texto if noticias_texto else 'No se pudieron cargar las noticias.'}
-FRASE DEL DÍA
-{frase}
 """
 
 # --- Versión HTML elegante ---
@@ -345,7 +338,6 @@ html = f"""\
   
         <tr><td style="padding:24px 36px 0 36px;"><div style="border-top:1px solid #e4e7ec;"></div></td></tr>
 
-        {bloque_tareas_html}
         {bloque_noticias_html}
 
         <!-- Frase -->
