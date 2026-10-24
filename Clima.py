@@ -45,8 +45,6 @@ sys.excepthook = avisar_error
 # --- Destinatarios ---
 DESTINATARIOS = [
     "vertelbravojesus@gmail.com",
-    "hurtadomariana180@gmail.com",
-    
 ]
 
 # Para correos donde el nombre no se pueda deducir o lleva tilde.
