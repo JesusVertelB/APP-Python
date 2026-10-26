@@ -4,6 +4,7 @@ import random
 import re
 import smtplib
 import sys
+import time
 import traceback
 from email.message import EmailMessage
 from html import escape
@@ -18,6 +19,29 @@ from google import genai
 clave_gemini = os.environ.get("GEMINI_API_KEY")
 if clave_gemini:
     cliente_ia = genai.Client(api_key=clave_gemini)
+
+MODELOS_IA = ["gemini-3.8-flash", "gemini-3.6-flash"]  # el segundo es de respaldo
+MOSTRAR_ERRORES_IA = False  # True = mostrar el error de la IA dentro del correo
+
+
+def generar_resumen_ia(prompt):
+    """Pide el resumen a Gemini. Reintenta si está saturado y prueba el modelo de respaldo."""
+    ultimo_error = None
+    for modelo in MODELOS_IA:
+        for intento in range(3):
+            try:
+                r = cliente_ia.models.generate_content(model=modelo, contents=prompt)
+                return r.text.strip()
+            except Exception as e:
+                ultimo_error = e
+                print(f"IA: {modelo}, intento {intento + 1} falló: {e}")
+                # 503 y 429 son temporales: esperar y reintentar. Otro error: pasar al siguiente modelo.
+                temporal = any(c in str(e) for c in ("503", "429", "UNAVAILABLE"))
+                if not temporal:
+                    break
+                if intento < 2:
+                    time.sleep(5 * (intento + 1))
+    raise ultimo_error
 
 
 # --- Aviso por correo si el script falla ---
@@ -236,14 +260,11 @@ if feed.entries:
                 "máximo 3 líneas unificando estos titulares de noticias de hoy, en español, "
                 "en texto plano, sin markdown ni asteriscos: " + ", ".join(titulares)
             )
-            respuesta = cliente_ia.models.generate_content(
-                model='gemini-3.8-flash',
-                contents=prompt
-            )
+            texto_ia = generar_resumen_ia(prompt)
             resumen_ia_html = f"""
             <div style="background-color:#fdf6e7; border-left:4px solid #c9a45c; border-radius:4px; padding:12px 16px; margin-bottom:20px;">
               <div style="color:#1b2a41; font-size:14px; line-height:1.6;">
-                <strong>✨ Resumen IA:</strong> {escape(respuesta.text.strip())}
+                <strong>✨ Resumen IA:</strong> {escape(texto_ia)}
               </div>
             </div>
             """
@@ -252,6 +273,8 @@ if feed.entries:
             print(f"Error al generar resumen IA: {e}")
 
     if aviso_ia:
+        print(f"Resumen IA omitido: {aviso_ia}")  # siempre queda en el log de Actions
+    if aviso_ia and MOSTRAR_ERRORES_IA:
         resumen_ia_html = (
             '<div style="color:#98a2b3; font-size:11px; margin-bottom:12px;">'
             f'IA no disponible → {escape(aviso_ia)}</div>'
